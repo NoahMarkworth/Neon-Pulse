@@ -717,10 +717,22 @@
             let obstacle;
 
             if (type === 'air') {
-                // Air obstacle - floating, requires double jump
-                obstacle = {
+                // First spawn a ground spike to force the player into the air
+                const leadSpike = {
                     x: spawnX,
-                    y: groundY - 180, // High up - can't reach with single jump
+                    y: groundY - 50,
+                    width: 35,
+                    height: 50,
+                    type: 'ground',
+                    cleared: false,
+                    pulse: 0
+                };
+                obstacles.push(leadSpike);
+
+                // Then spawn the air obstacle ahead of it
+                obstacle = {
+                    x: spawnX + 160, // Positioned after the lead spike
+                    y: groundY - 170, // High up - must double jump to clear
                     width: 60,
                     height: 40,
                     type: 'air',

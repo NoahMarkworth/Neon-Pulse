@@ -7,142 +7,157 @@ An endless runner where obstacles spawn synchronized to music beats. Players mus
 
 ### Movement
 - Auto-scrolling runner (player moves right automatically)
-- Single input: JUMP (spacebar or tap)
-- Double-jump available (unlocked after first 1000 points)
-- Gravity and air control feel snappy and responsive
+- Variable jump: TAP for short hop, HOLD for full height jump
+- Double-jump always available (tap again while airborne)
+- Snappy physics with high gravity for quick landings
 
 ### Rhythm System
-- BPM-based obstacle spawning (120 BPM default)
-- Visual beat indicators approach from the right
-- Player must jump ON the beat when obstacle arrives
+- BPM-based obstacle spawning (120 BPM)
+- Clear "JUMP" hit zone line at player position
+- Player must jump when obstacles reach the hit zone
 - Timing windows:
-  - PERFECT: ±50ms (100 pts × combo)
-  - GOOD: ±150ms (50 pts × combo)
+  - PERFECT: ±100ms (100 pts × combo) - hit zone turns GOLD
+  - GOOD: ±200ms (50 pts × combo) - hit zone turns GREEN
   - MISS: 0 pts, reset combo, lose 1 health
+
+### Obstacle Types
+1. **Normal Spikes** (red) - Clear with single jump
+2. **Tall Barriers** (orange, marked "2X") - Require double jump to clear
+   - Appear after 30 seconds of gameplay
+   - Have warning stripes pattern
+
+### Obstacle Spacing
+- Minimum 350px between obstacles (prevents impossible patterns)
+- Consistent rhythm patterns for learnable gameplay
 
 ### Scoring
 - Base points from timing accuracy
 - Combo multiplier: 1x → 2x → 3x → 4x (max)
 - Builds every 5 consecutive perfect/good hits
-- Near-miss bonus: Extra particles/effects (no points, just juice)
+- Best combo tracked separately
 
 ### Health System
 - 3 hearts/lives
 - Lose 1 on collision/miss
 - Game over at 0 health
-- No health regeneration (keeps tension high)
+- No health regeneration
 
 ## Visual Design
 
-### Aesthetic
-- Synthwave/retrowave theme
-- Color palette: Deep purple/black background, cyan and magenta neons
-- Grid floor that extends to horizon (perspective)
-- Glowing everything
+### Hit Zone Indicator
+- Vertical line at player X position labeled "JUMP"
+- Color-coded timing feedback:
+  - Default: Cyan glow
+  - Good timing window: Green
+  - Perfect timing window: Gold
+- Expanding ring pulses on every beat
+
+### Approach Indicators
+- Progress bar under each approaching obstacle
+- Fills as obstacle nears hit zone
+- Color shifts: cyan → green → gold as timing improves
 
 ### Player Character
-- Simple geometric shape (triangle/diamond) with glow
+- Diamond shape with inner glow
 - Trail effect behind character
 - Squash/stretch on jump and land
-- Color shifts with combo level
+- Color shifts with multiplier level:
+  - 1x: Cyan
+  - 2x: Green
+  - 3x: Yellow
+  - 4x: Magenta
+- Ring indicator when double jump is available
 
-### Obstacles
-- Neon blocks/spikes that pulse on beat
-- Glow intensifies as beat approaches
-- Shatter into particles when cleared with perfect timing
-
-### Beat Indicators
-- Visual pulse wave emanating from obstacles
-- Ring that contracts toward obstacle center on beat
-- Background grid pulses on every beat
+### Beat Effects
+- Screen-wide magenta pulse on every beat
+- Grid floor pulses brighter on beat
+- Obstacles glow intensifies on beat
 
 ### Juice Effects
 - Screen shake on miss
 - Chromatic aberration on high combo
-- Particle explosions on perfect timing
-- Flash effects on beat
-- Speed lines at high velocity
+- Colored particle explosions (gold=perfect, cyan=good, red=miss)
+- Flash effects matching timing quality
 
 ## Audio
 
 ### Music
-- Procedural beat generation (no external audio files needed)
+- Procedural beat generation (Web Audio API)
 - Kick drum on primary beats
-- Hi-hat patterns for rhythm texture
-- Synth bass line that follows the grid
-
-### Dynamic Layers
-- Layer 0 (base): Kick + hi-hat
-- Layer 1 (2x combo): Add bass
-- Layer 2 (3x combo): Add lead synth
-- Layer 3 (4x combo): Full intensity, reverb, effects
+- Hi-hat on off-beats
+- Bass line unlocks at 2x combo
+- Synth arpeggios unlock at 3x combo
 
 ### Sound Effects
-- Jump: Quick synth whoosh
-- Perfect: Bright ding/chime
-- Good: Softer confirmation
+- Jump: Quick ascending whoosh
+- Perfect: Bright three-tone chime
+- Good: Soft confirmation tone
 - Miss: Low impact thud
-- Combo milestone: Ascending tone
+- Combo milestone: Ascending fanfare
 
 ## Game States
 
 ### Title Screen
-- "NEON PULSE" logo pulsing to beat
+- "NEON PULSE" logo pulsing
+- "RHYTHM RUNNER" subtitle
 - "PRESS SPACE TO START"
 - High score display
-- Beat visualization in background
 
 ### Gameplay
 - Main runner view
-- HUD: Score (top-left), Combo (top-center), Health (top-right)
-- Ghost runner if previous run exists
+- HUD: Score (top-left), Multiplier (top-center), Health hearts (top-right)
+- Ghost runner shows previous best run
 
 ### Game Over
-- Final score with grade (S/A/B/C based on accuracy %)
+- Final score with grade:
+  - S: 95%+ accuracy
+  - A: 80%+ accuracy
+  - B: 60%+ accuracy
+  - C: Below 60%
+- Statistics: Perfect/Good/Miss counts
+- Accuracy percentage
 - Best combo achieved
-- "Press SPACE to retry"
-- Option to watch ghost of this run
 
 ## Progression
 
 ### Speed Ramp
-- Starts at base speed
-- +5% speed every 30 seconds
-- Cap at 2x base speed
+- Base speed: 5
+- Gradual increase over 45 seconds
+- Cap at 1.8x base speed
 
 ### Difficulty Curve
-- Early game: Obstacles every 4 beats
-- Mid game: Obstacles every 2 beats, some syncopation
-- Late game: Complex rhythms, off-beat patterns
+- 0-30s: Normal spikes every 2 beats
+- 30s+: Mix of normal and tall obstacles
+- Tall obstacles appear ~25% of the time
 
 ## Technical
 
 ### Implementation
 - Single HTML file with embedded CSS/JS
-- Canvas-based rendering
+- Canvas-based rendering (1200x800 max)
 - Web Audio API for procedural sound
 - RequestAnimationFrame game loop
-- Local storage for high score and ghost data
+- LocalStorage for high score and ghost data
 
 ### Controls
-- Spacebar: Jump
-- Enter: Start/Restart
+- Space (tap): Short hop / Double jump
+- Space (hold): Full height jump
+- Click/Touch: Same as space
 - M: Mute toggle
 
 ## Polish Features
 
 ### Ghost Mode
-- Transparent silhouette of previous best run
-- Stored in localStorage
-- Shows player position at each frame
+- Transparent cyan silhouette of previous best run
+- Automatically loads from localStorage
+- Updates when new high score achieved
 
 ### Visual Feedback
-- Perfect: Golden particles, screen flash
-- Good: White particles
-- Miss: Red flash, screen shake
-- Combo milestones: Text popup ("2X!", "3X!", etc.)
+- Perfect: Gold particles + gold flash + chime
+- Good: Cyan particles + cyan flash + soft tone
+- Miss: Red flash + screen shake + thud
 
 ### Accessibility
 - High contrast neon colors
-- Audio cues for all visual feedback
-- Timing windows tunable (future)
+- Multiple visual cues for timing (color + position + progress bar)
+- Audio feedback for all actions

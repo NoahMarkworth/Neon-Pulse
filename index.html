@@ -349,7 +349,6 @@
 
         // Obstacles
         let obstacles = [];
-        let lastObstacleSpawnX = -1000;
 
         // Particles
         let particles = [];
@@ -707,9 +706,12 @@
             const groundY = canvas.height - GROUND_HEIGHT;
             const spawnX = canvas.width + 50;
 
-            // Check minimum spacing
-            if (spawnX - lastObstacleSpawnX < MIN_OBSTACLE_SPACING) {
-                return;
+            // Check minimum spacing against rightmost obstacle's CURRENT position
+            if (obstacles.length > 0) {
+                const rightmost = obstacles.reduce((max, o) => o.x > max.x ? o : max, obstacles[0]);
+                if (spawnX - rightmost.x < MIN_OBSTACLE_SPACING) {
+                    return;
+                }
             }
 
             let obstacle;
@@ -751,7 +753,6 @@
             }
 
             obstacles.push(obstacle);
-            lastObstacleSpawnX = spawnX;
         }
 
         function updateObstacles() {
@@ -1005,43 +1006,6 @@
             ctx.shadowBlur = 0;
         }
 
-        function drawHitZone() {
-            const groundY = canvas.height - GROUND_HEIGHT;
-
-            // Find nearest obstacle
-            const nearestObstacle = obstacles.find(o => !o.cleared && o.x > HIT_ZONE_X - 100);
-            let timingColor = COLORS.cyan;
-            let glowIntensity = 5;
-
-            if (nearestObstacle) {
-                const distanceToHitZone = (nearestObstacle.x + nearestObstacle.width / 2) - HIT_ZONE_X;
-                const timeToHitZone = Math.abs((distanceToHitZone / speed) * (1000 / 60));
-
-                if (timeToHitZone <= PERFECT_WINDOW) {
-                    timingColor = COLORS.gold;
-                    glowIntensity = 25;
-                } else if (timeToHitZone <= GOOD_WINDOW) {
-                    timingColor = COLORS.green;
-                    glowIntensity = 15;
-                }
-            }
-
-            // Hit zone line
-            ctx.strokeStyle = timingColor;
-            ctx.lineWidth = 3;
-            ctx.shadowColor = timingColor;
-            ctx.shadowBlur = glowIntensity + beatPulse * 10;
-            ctx.globalAlpha = 0.5 + beatPulse * 0.3;
-
-            ctx.beginPath();
-            ctx.moveTo(HIT_ZONE_X, groundY - 220);
-            ctx.lineTo(HIT_ZONE_X, groundY);
-            ctx.stroke();
-
-            ctx.globalAlpha = 1;
-            ctx.shadowBlur = 0;
-        }
-
         function drawPlayer() {
             ctx.save();
             ctx.translate(player.x, player.y + player.height / 2);
@@ -1218,7 +1182,6 @@
         function drawScene() {
             drawBackground();
             drawGrid();
-            drawHitZone();
             drawObstacles();
             drawPlayer();
             drawParticles();
@@ -1268,7 +1231,6 @@
 
             obstacles = [];
             particles = [];
-            lastObstacleSpawnX = -1000;
 
             document.getElementById('overlay').classList.add('hidden');
             updateHUD();

@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Pulse - Rhythm Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a12;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-item {
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #combo {
+            text-align: center;
+            font-size: 36px;
+        }
+
+        #combo.multiplier-2 { color: #0f0; text-shadow: 0 0 10px #0f0, 0 0 20px #0f0; }
+        #combo.multiplier-3 { color: #ff0; text-shadow: 0 0 10px #ff0, 0 0 20px #ff0; }
+        #combo.multiplier-4 { color: #f0f; text-shadow: 0 0 10px #f0f, 0 0 20px #f0f; }
+
+        #health {
+            display: flex;
+            gap: 10px;
+        }
+
+        .heart {
+            width: 30px;
+            height: 30px;
+            background: #f0f;
+            clip-path: path('M15,26 C5,20 0,12 0,8 C0,3 4,0 8,0 C11,0 14,2 15,5 C16,2 19,0 22,0 C26,0 30,3 30,8 C30,12 25,20 15,26 Z');
+            box-shadow: 0 0 10px #f0f;
+            transition: all 0.3s;
+        }
+
+        .heart.empty {
+            background: #333;
+            box-shadow: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 10, 18, 0.9);
+            z-index: 20;
+            transition: opacity 0.3s;
+        }
+
+        #overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #title {
+            font-size: 72px;
+            color: #f0f;
+            text-shadow: 0 0 20px #f0f, 0 0 40px #f0f, 0 0 60px #0ff;
+            margin-bottom: 20px;
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); text-shadow: 0 0 20px #f0f, 0 0 40px #f0f; }
+            to { transform: scale(1.02); text-shadow: 0 0 30px #f0f, 0 0 60px #f0f, 0 0 80px #0ff; }
+        }
+
+        #subtitle {
+            font-size: 24px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            margin-bottom: 40px;
+        }
+
+        #startPrompt {
+            font-size: 28px;
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #highScore {
+            font-size: 20px;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+            margin-top: 30px;
+        }
+
+        #gameOverStats {
+            text-align: center;
+            color: #0ff;
+            margin-bottom: 20px;
+        }
+
+        #gameOverStats h2 {
+            font-size: 48px;
+            color: #f0f;
+            text-shadow: 0 0 20px #f0f;
+            margin-bottom: 20px;
+        }
+
+        #gameOverStats p {
+            font-size: 24px;
+            margin: 10px 0;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        .grade {
+            font-size: 72px !important;
+            font-weight: bold;
+        }
+
+        .grade-s { color: #f0f !important; }
+        .grade-a { color: #0ff !important; }
+        .grade-b { color: #0f0 !important; }
+        .grade-c { color: #ff0 !important; }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 14px;
+        }
+
+        #timingFeedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 15;
+            transition: all 0.1s;
+        }
+
+        #timingFeedback.perfect {
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700, 0 0 40px #ffd700;
+        }
+
+        #timingFeedback.good {
+            color: #0ff;
+            text-shadow: 0 0 20px #0ff;
+        }
+
+        #timingFeedback.miss {
+            color: #f00;
+            text-shadow: 0 0 20px #f00;
+        }
+
+        #muteBtn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s;
+        }
+
+        #muteBtn:hover {
+            background: #0ff;
+            color: #0a0a12;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="hud">
+            <div class="hud-item" id="score">0</div>
+            <div class="hud-item" id="combo">1x</div>
+            <div id="health">
+                <div class="heart"></div>
+                <div class="heart"></div>
+                <div class="heart"></div>
+            </div>
+        </div>
+
+        <div id="timingFeedback"></div>
+
+        <div id="overlay">
+            <div id="title">NEON PULSE</div>
+            <div id="subtitle">RHYTHM RUNNER</div>
+            <div id="startPrompt">PRESS SPACE TO START</div>
+            <div id="highScore">HIGH SCORE: 0</div>
+            <div id="gameOverStats" style="display: none;"></div>
+        </div>
+
+        <button id="muteBtn">🔊 SOUND</button>
+        <div id="instructions">SPACE to jump | M to mute</div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('gameContainer');
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game constants
+        const BPM = 120;
+        const BEAT_INTERVAL = 60000 / BPM;
+        const PERFECT_WINDOW = 80;
+        const GOOD_WINDOW = 150;
+        const GROUND_HEIGHT = 100;
+        const GRAVITY = 0.8;
+        const JUMP_FORCE = -18;
+        const BASE_SPEED = 6;
+
+        // Colors
+        const COLORS = {
+            bg: '#0a0a12',
+            grid: '#1a1a2e',
+            gridBright: '#2a2a4e',
+            cyan: '#00ffff',
+            magenta: '#ff00ff',
+            yellow: '#ffff00',
+            green: '#00ff00',
+            white: '#ffffff',
+            red: '#ff0044'
+        };
+
+        // Audio context
+        let audioCtx = null;
+        let isMuted = false;
+        let masterGain = null;
+
+        // Game state
+        let gameState = 'title';
+        let score = 0;
+        let combo = 0;
+        let multiplier = 1;
+        let health = 3;
+        let gameTime = 0;
+        let lastBeatTime = 0;
+        let beatCount = 0;
+        let speed = BASE_SPEED;
+        let perfectCount = 0;
+        let goodCount = 0;
+        let missCount = 0;
+
+        // Player
+        const player = {
+            x: 150,
+            y: 0,
+            vy: 0,
+            width: 40,
+            height: 50,
+            onGround: true,
+            canDoubleJump: false,
+            hasDoubleJumped: false,
+            squash: 1,
+            trail: []
+        };
+
+        // Obstacles
+        let obstacles = [];
+        let beatMarkers = [];
+
+        // Particles
+        let particles = [];
+
+        // Ghost
+        let ghostData = [];
+        let currentRunData = [];
+        let showGhost = false;
+
+        // Visual effects
+        let screenShake = { x: 0, y: 0, intensity: 0 };
+        let flashIntensity = 0;
+        let chromaticOffset = 0;
+        let gridPulse = 0;
+
+        // Feedback popup
+        let feedbackText = '';
+        let feedbackTimer = 0;
+        let feedbackClass = '';
+
+        // Initialize audio
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.value = isMuted ? 0 : 0.5;
+        }
+
+        // Sound synthesis
+        function playKick() {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playHiHat() {
+            if (!audioCtx || isMuted) return;
+            const bufferSize = audioCtx.sampleRate * 0.05;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+            }
+            const source = audioCtx.createBufferSource();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 7000;
+            source.buffer = buffer;
+            gain.gain.value = 0.15;
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            source.start();
+        }
+
+        function playBass(note = 0) {
+            if (!audioCtx || isMuted || multiplier < 2) return;
+            const freq = 55 * Math.pow(2, note / 12);
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 400;
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function playSynth() {
+            if (!audioCtx || isMuted || multiplier < 3) return;
+            const notes = [0, 3, 7, 12];
+            const baseFreq = 220;
+            notes.forEach((note, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = baseFreq * Math.pow(2, note / 12);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }, i * 50);
+            });
+        }
+
+        function playJump() {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playPerfect() {
+            if (!audioCtx || isMuted) return;
+            [800, 1000, 1200].forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                }, i * 30);
+            });
+        }
+
+        function playGood() {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 600;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playMiss() {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.value = 80;
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playComboUp() {
+            if (!audioCtx || isMuted) return;
+            [400, 500, 600, 800].forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }, i * 50);
+            });
+        }
+
+        // Particle system
+        function createParticles(x, y, color, count = 10, spread = 5) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * spread * 2,
+                    vy: (Math.random() - 0.5) * spread * 2 - 3,
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.02,
+                    size: 3 + Math.random() * 5,
+                    color: color
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1;
+                p.life -= p.decay;
+                return p.life > 0;
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+        }
+
+        // Game functions
+        function jump() {
+            if (player.onGround) {
+                player.vy = JUMP_FORCE;
+                player.onGround = false;
+                player.hasDoubleJumped = false;
+                player.squash = 0.7;
+                playJump();
+                checkBeatTiming();
+            } else if (player.canDoubleJump && !player.hasDoubleJumped) {
+                player.vy = JUMP_FORCE * 0.85;
+                player.hasDoubleJumped = true;
+                player.squash = 0.7;
+                playJump();
+                createParticles(player.x, player.y + player.height / 2, COLORS.cyan, 5, 3);
+            }
+        }
+
+        function checkBeatTiming() {
+            const nearestObstacle = obstacles.find(o => !o.cleared && o.x > player.x - 50 && o.x < player.x + 200);
+            if (!nearestObstacle) return;
+
+            const timeDiff = Math.abs(nearestObstacle.beatTime - gameTime);
+
+            if (timeDiff <= PERFECT_WINDOW) {
+                handlePerfect(nearestObstacle);
+            } else if (timeDiff <= GOOD_WINDOW) {
+                handleGood(nearestObstacle);
+            }
+        }
+
+        function handlePerfect(obstacle) {
+            obstacle.cleared = true;
+            perfectCount++;
+            combo++;
+            updateMultiplier();
+            const points = 100 * multiplier;
+            score += points;
+
+            flashIntensity = 0.3;
+            createParticles(obstacle.x, obstacle.y, '#ffd700', 20, 8);
+            playPerfect();
+
+            showFeedback('PERFECT!', 'perfect');
+        }
+
+        function handleGood(obstacle) {
+            obstacle.cleared = true;
+            goodCount++;
+            combo++;
+            updateMultiplier();
+            const points = 50 * multiplier;
+            score += points;
+
+            createParticles(obstacle.x, obstacle.y, COLORS.cyan, 10, 5);
+            playGood();
+
+            showFeedback('GOOD', 'good');
+        }
+
+        function handleMiss() {
+            missCount++;
+            combo = 0;
+            multiplier = 1;
+            health--;
+
+            screenShake.intensity = 15;
+            flashIntensity = 0.5;
+            playMiss();
+
+            showFeedback('MISS', 'miss');
+
+            if (health <= 0) {
+                gameOver();
+            }
+
+            updateHUD();
+        }
+
+        function updateMultiplier() {
+            const oldMultiplier = multiplier;
+            if (combo >= 20) multiplier = 4;
+            else if (combo >= 12) multiplier = 3;
+            else if (combo >= 5) multiplier = 2;
+            else multiplier = 1;
+
+            if (multiplier > oldMultiplier) {
+                playComboUp();
+                chromaticOffset = 5;
+            }
+        }
+
+        function showFeedback(text, className) {
+            const feedback = document.getElementById('timingFeedback');
+            feedback.textContent = text;
+            feedback.className = className;
+            feedback.style.opacity = '1';
+            feedback.style.transform = 'translate(-50%, -50%) scale(1.2)';
+
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                feedback.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 200);
+        }
+
+        function spawnObstacle() {
+            const groundY = canvas.height - GROUND_HEIGHT;
+            obstacles.push({
+                x: canvas.width + 100,
+                y: groundY - 60,
+                width: 40,
+                height: 60,
+                beatTime: gameTime + (canvas.width - player.x + 100) / speed * (1000 / 60),
+                cleared: false,
+                pulse: 0
+            });
+        }
+
+        function updateObstacles() {
+            obstacles = obstacles.filter(o => {
+                o.x -= speed;
+                o.pulse = Math.max(0, o.pulse - 0.05);
+
+                // Check collision
+                if (!o.cleared &&
+                    player.x + player.width * 0.4 > o.x &&
+                    player.x - player.width * 0.4 < o.x + o.width &&
+                    player.y + player.height > o.y &&
+                    player.y < o.y + o.height) {
+                    o.cleared = true;
+                    handleMiss();
+                }
+
+                // Check if passed without jumping
+                if (!o.cleared && o.x + o.width < player.x - 20) {
+                    o.cleared = true;
+                    handleMiss();
+                }
+
+                return o.x > -100;
+            });
+        }
+
+        function updatePlayer() {
+            // Gravity
+            player.vy += GRAVITY;
+            player.y += player.vy;
+
+            // Ground collision
+            const groundY = canvas.height - GROUND_HEIGHT - player.height;
+            if (player.y >= groundY) {
+                player.y = groundY;
+                player.vy = 0;
+                if (!player.onGround) {
+                    player.squash = 1.3;
+                    createParticles(player.x, player.y + player.height, COLORS.magenta, 5, 2);
+                }
+                player.onGround = true;
+            }
+
+            // Squash recovery
+            player.squash += (1 - player.squash) * 0.2;
+
+            // Trail
+            player.trail.unshift({ x: player.x, y: player.y + player.height / 2 });
+            if (player.trail.length > 15) player.trail.pop();
+
+            // Unlock double jump
+            if (score >= 1000) player.canDoubleJump = true;
+
+            // Record for ghost
+            if (gameState === 'playing') {
+                currentRunData.push({ x: player.x, y: player.y, time: gameTime });
+            }
+        }
+
+        function updateBeat() {
+            if (gameTime - lastBeatTime >= BEAT_INTERVAL) {
+                lastBeatTime = gameTime;
+                beatCount++;
+                gridPulse = 1;
+
+                // Play beat sounds
+                playKick();
+                if (beatCount % 2 === 0) playHiHat();
+
+                // Bass line on every 4th beat
+                if (beatCount % 4 === 0) {
+                    const bassNotes = [0, 0, 3, 5];
+                    playBass(bassNotes[Math.floor(beatCount / 4) % 4]);
+                }
+
+                // Synth on every 8th beat
+                if (beatCount % 8 === 0) playSynth();
+
+                // Spawn obstacle pattern
+                const difficulty = Math.min(gameTime / 60000, 1);
+                const spawnRate = 4 - Math.floor(difficulty * 2);
+
+                if (beatCount % spawnRate === 0) {
+                    spawnObstacle();
+                }
+
+                // Occasionally add syncopated obstacles at higher difficulty
+                if (difficulty > 0.5 && Math.random() < 0.2 && beatCount % 2 === 1) {
+                    setTimeout(spawnObstacle, BEAT_INTERVAL / 2);
+                }
+
+                // Pulse obstacles
+                obstacles.forEach(o => o.pulse = 1);
+            }
+
+            gridPulse *= 0.9;
+        }
+
+        function updateEffects() {
+            // Screen shake decay
+            if (screenShake.intensity > 0) {
+                screenShake.x = (Math.random() - 0.5) * screenShake.intensity;
+                screenShake.y = (Math.random() - 0.5) * screenShake.intensity;
+                screenShake.intensity *= 0.9;
+            }
+
+            // Flash decay
+            flashIntensity *= 0.85;
+
+            // Chromatic aberration decay
+            chromaticOffset *= 0.9;
+
+            // Speed increase over time
+            speed = BASE_SPEED + (gameTime / 30000) * 2;
+            speed = Math.min(speed, BASE_SPEED * 2);
+        }
+
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('combo').textContent = multiplier + 'x';
+            document.getElementById('combo').className = 'hud-item multiplier-' + multiplier;
+
+            const hearts = document.querySelectorAll('.heart');
+            hearts.forEach((heart, i) => {
+                heart.classList.toggle('empty', i >= health);
+            });
+        }
+
+        // Drawing functions
+        function drawBackground() {
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a0a2e');
+            gradient.addColorStop(0.5, '#0a0a12');
+            gradient.addColorStop(1, '#0a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Stars
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 73 + gameTime * 0.01) % canvas.width;
+                const y = (i * 37) % (canvas.height * 0.5);
+                const size = 1 + (i % 3);
+                ctx.globalAlpha = 0.3 + Math.sin(gameTime * 0.001 + i) * 0.2;
+                ctx.fillRect(x, y, size, size);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function drawGrid() {
+            const groundY = canvas.height - GROUND_HEIGHT;
+            const horizonY = canvas.height * 0.4;
+            const pulseIntensity = gridPulse * 0.5 + 0.5;
+
+            ctx.strokeStyle = COLORS.grid;
+            ctx.lineWidth = 1;
+
+            // Vertical lines (perspective)
+            const numLines = 20;
+            const centerX = canvas.width * 0.5;
+
+            for (let i = -numLines; i <= numLines; i++) {
+                const x1 = centerX + i * 100 - (gameTime * speed * 0.1) % 100;
+                const x2 = centerX + i * 30;
+
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.1 + gridPulse * 0.2})`;
+                ctx.beginPath();
+                ctx.moveTo(x1, groundY);
+                ctx.lineTo(x2, horizonY);
+                ctx.stroke();
+            }
+
+            // Horizontal lines
+            for (let i = 0; i < 15; i++) {
+                const t = i / 15;
+                const y = horizonY + (groundY - horizonY) * Math.pow(t, 1.5);
+                ctx.strokeStyle = `rgba(255, 0, 255, ${0.1 + t * 0.2 + gridPulse * 0.1})`;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Ground line
+            ctx.strokeStyle = COLORS.magenta;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = COLORS.magenta;
+            ctx.shadowBlur = 10 + gridPulse * 20;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawGhost() {
+            if (!showGhost || ghostData.length === 0) return;
+
+            const ghostPoint = ghostData.find(g => Math.abs(g.time - gameTime) < 50);
+            if (!ghostPoint) return;
+
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = COLORS.cyan;
+            ctx.beginPath();
+            ctx.moveTo(ghostPoint.x, ghostPoint.y);
+            ctx.lineTo(ghostPoint.x - 20, ghostPoint.y + player.height);
+            ctx.lineTo(ghostPoint.x + 20, ghostPoint.y + player.height);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        function drawPlayer() {
+            const scaleX = 1 / player.squash;
+            const scaleY = player.squash;
+
+            ctx.save();
+            ctx.translate(player.x, player.y + player.height / 2);
+            ctx.scale(scaleX, scaleY);
+
+            // Trail
+            ctx.globalAlpha = 0.3;
+            player.trail.forEach((point, i) => {
+                const alpha = (1 - i / player.trail.length) * 0.3;
+                const size = (1 - i / player.trail.length) * 10;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = COLORS.magenta;
+                ctx.beginPath();
+                ctx.arc(point.x - player.x, point.y - player.y - player.height / 2, size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            // Main body (diamond shape)
+            const colors = [COLORS.cyan, COLORS.green, COLORS.yellow, COLORS.magenta];
+            const playerColor = colors[multiplier - 1];
+
+            ctx.fillStyle = playerColor;
+            ctx.shadowColor = playerColor;
+            ctx.shadowBlur = 15 + combo * 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -player.height / 2);
+            ctx.lineTo(player.width / 2, 0);
+            ctx.lineTo(0, player.height / 2);
+            ctx.lineTo(-player.width / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Inner glow
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -player.height / 4);
+            ctx.lineTo(player.width / 4, 0);
+            ctx.lineTo(0, player.height / 4);
+            ctx.lineTo(-player.width / 4, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(o => {
+                const pulse = o.pulse;
+                const glowSize = 10 + pulse * 20;
+
+                ctx.fillStyle = COLORS.red;
+                ctx.shadowColor = COLORS.red;
+                ctx.shadowBlur = glowSize;
+
+                // Spike shape
+                ctx.beginPath();
+                ctx.moveTo(o.x + o.width / 2, o.y);
+                ctx.lineTo(o.x + o.width, o.y + o.height);
+                ctx.lineTo(o.x, o.y + o.height);
+                ctx.closePath();
+                ctx.fill();
+
+                // Beat indicator ring
+                if (!o.cleared) {
+                    const timeToBeat = o.beatTime - gameTime;
+                    if (timeToBeat > 0 && timeToBeat < 1000) {
+                        const ringSize = 30 + (timeToBeat / 1000) * 50;
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - timeToBeat / 1000})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(o.x + o.width / 2, o.y + o.height / 2, ringSize, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function drawEffects() {
+            // Flash overlay
+            if (flashIntensity > 0.01) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Beat pulse overlay
+            if (gridPulse > 0.5) {
+                ctx.fillStyle = `rgba(255, 0, 255, ${(gridPulse - 0.5) * 0.1})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function draw() {
+            ctx.save();
+            ctx.translate(screenShake.x, screenShake.y);
+
+            // Chromatic aberration effect
+            if (chromaticOffset > 0.5) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.3;
+
+                ctx.translate(-chromaticOffset, 0);
+                drawScene('red');
+                ctx.translate(chromaticOffset * 2, 0);
+                drawScene('blue');
+
+                ctx.restore();
+            }
+
+            drawScene();
+            drawEffects();
+
+            ctx.restore();
+        }
+
+        function drawScene(tint = null) {
+            if (!tint) {
+                drawBackground();
+                drawGrid();
+                drawGhost();
+                drawObstacles();
+                drawPlayer();
+                drawParticles();
+            }
+        }
+
+        function update(deltaTime) {
+            if (gameState !== 'playing') return;
+
+            gameTime += deltaTime;
+
+            updateBeat();
+            updatePlayer();
+            updateObstacles();
+            updateParticles();
+            updateEffects();
+            updateHUD();
+        }
+
+        // Game state management
+        function startGame() {
+            initAudio();
+
+            gameState = 'playing';
+            score = 0;
+            combo = 0;
+            multiplier = 1;
+            health = 3;
+            gameTime = 0;
+            lastBeatTime = 0;
+            beatCount = 0;
+            speed = BASE_SPEED;
+            perfectCount = 0;
+            goodCount = 0;
+            missCount = 0;
+
+            player.y = canvas.height - GROUND_HEIGHT - player.height;
+            player.vy = 0;
+            player.onGround = true;
+            player.canDoubleJump = false;
+            player.hasDoubleJumped = false;
+            player.trail = [];
+
+            obstacles = [];
+            particles = [];
+            beatMarkers = [];
+            currentRunData = [];
+
+            // Load ghost data
+            const savedGhost = localStorage.getItem('neonPulseGhost');
+            if (savedGhost) {
+                ghostData = JSON.parse(savedGhost);
+                showGhost = true;
+            }
+
+            document.getElementById('overlay').classList.add('hidden');
+            updateHUD();
+        }
+
+        function gameOver() {
+            gameState = 'gameover';
+
+            // Save high score
+            const highScore = parseInt(localStorage.getItem('neonPulseHighScore') || '0');
+            if (score > highScore) {
+                localStorage.setItem('neonPulseHighScore', score);
+                localStorage.setItem('neonPulseGhost', JSON.stringify(currentRunData));
+            }
+
+            // Calculate grade
+            const totalAttempts = perfectCount + goodCount + missCount;
+            const accuracy = totalAttempts > 0 ? ((perfectCount + goodCount * 0.5) / totalAttempts) * 100 : 0;
+
+            let grade, gradeClass;
+            if (accuracy >= 90) { grade = 'S'; gradeClass = 'grade-s'; }
+            else if (accuracy >= 75) { grade = 'A'; gradeClass = 'grade-a'; }
+            else if (accuracy >= 60) { grade = 'B'; gradeClass = 'grade-b'; }
+            else { grade = 'C'; gradeClass = 'grade-c'; }
+
+            // Show game over screen
+            const overlay = document.getElementById('overlay');
+            const statsDiv = document.getElementById('gameOverStats');
+            const titleDiv = document.getElementById('title');
+            const subtitleDiv = document.getElementById('subtitle');
+
+            titleDiv.style.display = 'none';
+            subtitleDiv.style.display = 'none';
+
+            statsDiv.innerHTML = `
+                <h2>GAME OVER</h2>
+                <p class="grade ${gradeClass}">${grade}</p>
+                <p>SCORE: ${score}</p>
+                <p>BEST COMBO: ${Math.max(combo, multiplier)}x</p>
+                <p>PERFECT: ${perfectCount} | GOOD: ${goodCount} | MISS: ${missCount}</p>
+                <p>ACCURACY: ${accuracy.toFixed(1)}%</p>
+            `;
+            statsDiv.style.display = 'block';
+
+            document.getElementById('highScore').textContent = `HIGH SCORE: ${Math.max(score, highScore)}`;
+            document.getElementById('startPrompt').textContent = 'PRESS SPACE TO RETRY';
+
+            overlay.classList.remove('hidden');
+        }
+
+        function showTitle() {
+            gameState = 'title';
+
+            const overlay = document.getElementById('overlay');
+            const statsDiv = document.getElementById('gameOverStats');
+            const titleDiv = document.getElementById('title');
+            const subtitleDiv = document.getElementById('subtitle');
+
+            titleDiv.style.display = 'block';
+            subtitleDiv.style.display = 'block';
+            statsDiv.style.display = 'none';
+
+            document.getElementById('startPrompt').textContent = 'PRESS SPACE TO START';
+
+            const highScore = localStorage.getItem('neonPulseHighScore') || '0';
+            document.getElementById('highScore').textContent = `HIGH SCORE: ${highScore}`;
+
+            overlay.classList.remove('hidden');
+        }
+
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameState === 'title' || gameState === 'gameover') {
+                    startGame();
+                } else if (gameState === 'playing') {
+                    jump();
+                }
+            }
+
+            if (e.code === 'KeyM') {
+                isMuted = !isMuted;
+                if (masterGain) masterGain.gain.value = isMuted ? 0 : 0.5;
+                document.getElementById('muteBtn').textContent = isMuted ? '🔇 MUTED' : '🔊 SOUND';
+            }
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            if (masterGain) masterGain.gain.value = isMuted ? 0 : 0.5;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇 MUTED' : '🔊 SOUND';
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameState === 'title' || gameState === 'gameover') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            }
+        });
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === 'title' || gameState === 'gameover') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            }
+        });
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const deltaTime = lastTime ? timestamp - lastTime : 16.67;
+            lastTime = timestamp;
+
+            update(deltaTime);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize
+        showTitle();
+        player.y = canvas.height - GROUND_HEIGHT - player.height;
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
